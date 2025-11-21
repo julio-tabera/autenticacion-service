@@ -1,0 +1,106 @@
+version: '3.3'
+
+# >>> SERVICES >>>
+services:
+#   Redis server
+  redis:
+    container_name: auth-redis
+    image: redis:alpine
+    ports:
+      - "6399:6399"
+    networks:
+      auth-network:
+        ipv4_address: 172.10.45.6
+  # Nginx Service
+  nginx:
+    image: auth/nginx:1.21
+    container_name: auth-nginx
+    build:
+      context: .
+      dockerfile: ./docker-config/nginx/Dockerfile
+    ports:
+      - 8096:80
+    volumes:
+      - ./src:/var/www/html
+      - ./docker-config/symfony/.env:/var/www/html/.env
+      - ./docker-config/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      auth-network:
+        ipv4_address: 172.10.45.3
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PW}
+      DB_NAME: ${POSTGRES_DB}
+    depends_on:
+      - php-fpm
+#    links:
+#      - php-fpm
+
+  # PHP
+  php-fpm:
+    image: auth/php:8.2-fpm
+    container_name: auth-php
+    build:
+      context: .
+      dockerfile: ./docker-config/php/Dockerfile
+    volumes:
+      - ./src:/var/www/html
+      - ./docker-config/php/db_install.sh:/var/www/html/db_install.sh
+      - ./docker-config/php/timezone.ini:/usr/local/etc/php/conf.d/timezone.ini
+    networks:
+      auth-network:
+        ipv4_address: 172.10.45.4
+    depends_on:
+      - postgres
+#    links:
+#      - postgres
+#      - redis
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PW}@postgres:5432/${POSTGRES_DB}
+
+#  postgres
+  postgres:
+    container_name: auth-postgres
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PW}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5450:5452"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      auth-network:
+        ipv4_address: 172.10.45.2
+
+#  PGADMIN
+  pgadmin:
+    container_name: auth-pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_MAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PW}
+    ports:
+      - "5069:80"
+    restart: always
+    networks:
+      auth-network:
+        ipv4_address: 172.10.45.5
+
+# >>> NETWORKS >>>
+networks:
+  auth-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.10.45.0/24"
+          gateway: "172.10.45.1"
+
+# >>> VOLUMES >>>
+volumes:
+  db_data:
