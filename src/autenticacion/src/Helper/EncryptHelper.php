@@ -4,16 +4,17 @@ namespace App\Helper;
 
 class EncryptHelper {
 
-    private $numbers = '0123456789';
-    private $leters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    private $special  = '~!@#$%^&*(){}[],./?';
+    private string $numbers = '0123456789';
+    private string $leters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private string $special  = '~!@#$%^&*(){}[],./?';
 
     /**
      * @param int $length Cantidad de caracteres del hash
      * @return string
      * Metodo para obtener hash aleatorio de letras y numeros
      */
-    public function generateRandomString($length = 10, $numeros = true, $letras = true, $caracteres = false) {
+    public function generateRandomString($length = 10, $numeros = true, $letras = true, $caracteres = false): string
+    {
         $characters = '';
         if ($numeros) {
             $characters .= $this->numbers;
@@ -68,7 +69,7 @@ class EncryptHelper {
         return $min + $rnd;
     }
 
-    public function getHash()
+    public function getHash(): string
     {
         $token = "";
         $codeAlphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -77,8 +78,7 @@ class EncryptHelper {
             $token .= $codeAlphabet[$this->crypto_rand_secure(0, $max - 1)];
         }
         $fecha = new \DateTime();
-        $hash = $fecha->format('Y') . $fecha->format('m') . $fecha->format('d') . $fecha->format('G') . $fecha->format('i') . $fecha->format('s') . $fecha->format('u') . $token;
-        return $hash;
+        return $fecha->format('Y') . $fecha->format('m') . $fecha->format('d') . $fecha->format('G') . $fecha->format('i') . $fecha->format('s') . $fecha->format('u') . $token;
     }
 
 
