@@ -10,6 +10,12 @@ security:
         property: username
 
   firewalls:
+    # firewall para el entorno dev (opcional, típico en proyectos Symfony)
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+
+    # LOGIN: recibe username/password y devuelve JWT
     login:
       pattern: ^/login
       stateless: true
@@ -20,12 +26,24 @@ security:
         success_handler: lexik_jwt_authentication.handler.authentication_success
         failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
+    # Rutas protegidas por JWT
     api:
-      pattern: ^/api
+      # Aquí incluyes todas las rutas que quieras proteger con token
+      pattern: ^/auth
       stateless: true
       jwt: ~
 
   access_control:
+    # 1) Permitir acceso público al login (obtener token)
     - { path: ^/login, roles: PUBLIC_ACCESS }
-    - { path: ^/register, roles: PUBLIC_ACCESS }
-    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+
+    # 2) Permitir acceso público al registro de usuarios
+    - { path: ^/auth/registro, roles: PUBLIC_ACCESS }
+
+    # 3) Permitir acceso público a la introspección de tokens
+    #    (ya que el token viene en el body, no en el Authorization header)
+    - { path: ^/auth/token-introspeccion, roles: PUBLIC_ACCESS }
+
+    # 4) Rutas bajo /auth que SÍ requieren estar autenticado con JWT
+    #    (usuario-logueado, usuario_find, y cualquier otra que agregues)
+    - { path: ^/auth, roles: IS_AUTHENTICATED_FULLY }

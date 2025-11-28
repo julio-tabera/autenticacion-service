@@ -1,0 +1,2 @@
+18:02:58
+{"ip":"172.23.0.1","token":"ibiwedrftg...","error":"Invalid JWT Token"}
