@@ -30,7 +30,7 @@ class AutenticacionController extends AbstractController
 
                 $json = $request->getContent();
                 $data = json_decode($json, true);
-                $this->escribirLog($json, 'log_autenticacion');
+                $encryptHelper->escribirLog($json, 'log_autenticacion');
 
                 // verifica que la codificacion del json haya sido correcta
                 if (json_last_error() !== JSON_ERROR_NONE) {
@@ -78,7 +78,7 @@ class AutenticacionController extends AbstractController
                     Response::HTTP_OK);
 
             } catch (\Exception $ex) {
-                $this->escribirLog('ERROR ' . $ex->getMessage(), 'log_autenticacion');
+                $encryptHelper->escribirLog('ERROR ' . $ex->getMessage(), 'log_autenticacion');
                 return $this->json(['estado' => 'ERROR', 'mensaje' => 'Error interno'], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         }
@@ -89,10 +89,10 @@ class AutenticacionController extends AbstractController
 
     // <editor-fold defaultstate="collapsed" desc="API OBTENER USUARIO LOGUEADO">
     #[Route('/usuario-logueado', name: 'auth_usuario_logueado', methods: ['GET'])]
-    public function authUsuarioLogueado(Request $request): JsonResponse
+    public function authUsuarioLogueado(Request $request, EncryptHelper $encryptHelper): JsonResponse
     {
         $header = $request->headers->get('client-tokenid');
-        if (!$this->validarCredencialesHeaders($header)){
+        if (!$encryptHelper->validarCredencialesHeaders($header)){
             return $this->json([
                 'estado' => 'ERROR',
                 'mensaje' => 'Error en la conexion'
@@ -137,10 +137,12 @@ class AutenticacionController extends AbstractController
 
     // <editor-fold defaultstate="collapsed" desc="API INTROSPECCION DE TOKEN">
     #[Route('/token-introspeccion', name: 'auth_introspeccion', methods: ['POST'])]
-    public function authIntrospeccionToken(Request $request, JWTTokenManagerInterface $jwtManager): JsonResponse
+    public function authIntrospeccionToken(Request $request,
+                                           JWTTokenManagerInterface $jwtManager,
+                                           EncryptHelper $encryptHelper): JsonResponse
     {
         $header = $request->headers->get('client-tokenid');
-        if (!$this->validarCredencialesHeaders($header)){
+        if (!$encryptHelper->validarCredencialesHeaders($header)){
             return $this->json([
                 'estado' => 'ERROR',
                 'mensaje' => 'Error en la conexion'
@@ -198,7 +200,7 @@ class AutenticacionController extends AbstractController
                 'error' => $e->getMessage(),
             ]);
 
-            $this->escribirLog($log, 'log_validacion_token');
+            $encryptHelper->escribirLog($log, 'log_validacion_token');
             return $this->json(['estado' => false], Response::HTTP_OK);
         }
     }
@@ -207,7 +209,9 @@ class AutenticacionController extends AbstractController
 
     // <editor-fold defaultstate="collapsed" desc="API OBTENER USUARIO POR USERNAME O ID">
     #[Route('/usuario-find', name: 'auth_usuario_find', methods: ['POST'])]
-    public function authUsuarioFind( Request $request, UsuarioRepository $usuarioRepository): JsonResponse
+    public function authUsuarioFind( Request $request,
+                                     UsuarioRepository $usuarioRepository,
+                                     EncryptHelper $encryptHelper): JsonResponse
     {
         try {
             $json = $request->getContent();
@@ -266,7 +270,7 @@ class AutenticacionController extends AbstractController
             $response->headers->set('Cache-Control', 'no-store');
             return $response;
         } catch (\Exception $ex) {
-            $this->escribirLog('ERROR ' . $ex->getMessage(), 'log_find_usuario');
+            $encryptHelper->escribirLog('ERROR ' . $ex->getMessage(), 'log_find_usuario');
             return $this->json(['estado' => 'ERROR', 'mensaje' => 'Error interno'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
@@ -275,39 +279,5 @@ class AutenticacionController extends AbstractController
     //</editor-fold>
 
 
-    // Validador completo de credenciales
-    private function validarCredencialesHeaders($header): bool
-    {
-        $credencialApi = $this->getParameter('token');
-        //dump($credencialApi);die();
-        // si el header viene vacio
-        if (!$header) {
-           return false;
-        }
-        $client_credentials = base64_decode($header, true);
 
-        // si la decodificación falló
-        if ($client_credentials === false) {
-            return false;
-        }
-        // verifica que las credenciales contengan igual longitud
-        if (strlen($client_credentials) !== strlen($credencialApi)) {
-            return false;
-        }
-        // si las credenciales no coinciden
-        if (!$client_credentials || !hash_equals($credencialApi, $client_credentials)){
-           return false;
-        }
-        return true;
-    }
-
-    // Guardar en el registro en el logs
-    private function escribirLog($xml, $name): void
-    {
-        $fecha = new \DateTime();
-        $file = fopen($this->getParameter('kernel.project_dir') . '/public/uploads/logs' . $fecha->format('Ymd') . $name . '.txt', "a+");
-        fwrite($file, $fecha->format('H:i:s') . PHP_EOL);
-        fwrite($file, $xml . PHP_EOL);
-        fclose($file);
-    }
 }

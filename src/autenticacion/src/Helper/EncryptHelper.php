@@ -2,11 +2,15 @@
 
 namespace App\Helper;
 
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+
 class EncryptHelper {
 
     private string $numbers = '0123456789';
     private string $leters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     private string $special  = '~!@#$%^&*(){}[],./?';
+
+    public function __construct(private ParameterBagInterface $parameterBag) {}
 
     /**
      * @param int $length Cantidad de caracteres del hash
@@ -79,6 +83,42 @@ class EncryptHelper {
         }
         $fecha = new \DateTime();
         return $fecha->format('Y') . $fecha->format('m') . $fecha->format('d') . $fecha->format('G') . $fecha->format('i') . $fecha->format('s') . $fecha->format('u') . $token;
+    }
+
+    // Validador completo de credenciales
+    public function validarCredencialesHeaders($header): bool
+    {
+        $credencialApi = $this->parameterBag->get('token');
+        //dump($credencialApi);die();
+        // si el header viene vacio
+        if (!$header) {
+            return false;
+        }
+        $client_credentials = base64_decode($header, true);
+
+        // si la decodificación falló
+        if ($client_credentials === false) {
+            return false;
+        }
+        // verifica que las credenciales contengan igual longitud
+        if (strlen($client_credentials) !== strlen($credencialApi)) {
+            return false;
+        }
+        // si las credenciales no coinciden
+        if (!$client_credentials || !hash_equals($credencialApi, $client_credentials)){
+            return false;
+        }
+        return true;
+    }
+
+    // Guardar en el registro en el logs
+    public function escribirLog($xml, $name): void
+    {
+        $fecha = new \DateTime();
+        $file = fopen($this->parameterBag->get('kernel.project_dir') . '/public/uploads/logs' . $fecha->format('Ymd') . $name . '.txt', "a+");
+        fwrite($file, $fecha->format('H:i:s') . PHP_EOL);
+        fwrite($file, $xml . PHP_EOL);
+        fclose($file);
     }
 
 
