@@ -230,7 +230,7 @@ class AutenticacionController extends AbstractController
 
                 if (isset($data['username']) && !empty(trim($data['username']))) {
                     $usuario = $usuarioRepository->findOneBy(['username' => $data['username']]);
-                }elseif (isset($data['id']) && !empty(trim($data['id']))){
+                }elseif (isset($data['id']) && is_numeric($data['id'])){
                     $usuario = $usuarioRepository->find($data['id']);
                 }else{
                     return $this->json(['estado' => 'ERROR', 'mensaje' => 'nombre de usuario o id requerido'], Response::HTTP_BAD_REQUEST);
